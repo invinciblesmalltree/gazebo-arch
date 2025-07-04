@@ -1,10 +1,11 @@
-# Maintainer: acxz <akashpatel2008 at yahoo dot com>
+# Maintainer: insmtr <insmtr@insmtr.cn>
+# Contributor: acxz <akashpatel2008 at yahoo dot com>
 # Contributor: Homalozoa <nx dot tardis at gmail dot com>
 # Contributor: Bernd Müller <github@muellerbernd.de>
 
 pkgname=ignition-msgs-5
 pkgver=5.11.0
-pkgrel=5
+pkgrel=6
 pkgdesc="Messages for Gazebo robot simulation."
 arch=('i686' 'x86_64')
 url="https://gazebosim.org/libs/msgs"
@@ -14,10 +15,16 @@ depends=('protobuf' 'protobuf-c' 'ignition-math=6' 'ignition-utils=1'
          'ignition-tools=1' 'python')
 makedepends=('ignition-cmake=2' 'ruby-ronn' 'doxygen' 'tinyxml2')
 provides=('ignition-msgs=5')
-source=("${pkgname}-${pkgver}::https://github.com/gazebosim/gz-msgs/archive/ignition-msgs5_${pkgver}.tar.gz")
-sha256sums=('3cf31cabd0d21fc9cb111aafedd65c13d5523a7585572e85657681baf1878da7')
+source=("${pkgname}-${pkgver}::https://github.com/gazebosim/gz-msgs/archive/ignition-msgs5_${pkgver}.tar.gz"
+        "fix-string-view.patch")
+sha256sums=('3cf31cabd0d21fc9cb111aafedd65c13d5523a7585572e85657681baf1878da7'
+            'b5b6f2ebfda15b9d60a89cc8c72d309d32ce46640f43645a8334f6ecfa670f7e')
 
 _dir="gz-msgs-ignition-msgs5_${pkgver}"
+
+prepare() {
+  patch -d "${srcdir}/${_dir}" -Np1 < fix-string-view.patch
+}
 
 build() {
   cd "${srcdir}/${_dir}"
