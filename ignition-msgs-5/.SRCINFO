@@ -1,7 +1,7 @@
 pkgbase = ignition-msgs-5
 	pkgdesc = Messages for Gazebo robot simulation.
 	pkgver = 5.11.0
-	pkgrel = 5
+	pkgrel = 6
 	url = https://gazebosim.org/libs/msgs
 	arch = i686
 	arch = x86_64
@@ -19,6 +19,8 @@ pkgbase = ignition-msgs-5
 	depends = python
 	provides = ignition-msgs=5
 	source = ignition-msgs-5-5.11.0::https://github.com/gazebosim/gz-msgs/archive/ignition-msgs5_5.11.0.tar.gz
+	source = fix-string-view.patch
 	sha256sums = 3cf31cabd0d21fc9cb111aafedd65c13d5523a7585572e85657681baf1878da7
+	sha256sums = b5b6f2ebfda15b9d60a89cc8c72d309d32ce46640f43645a8334f6ecfa670f7e
 
 pkgname = ignition-msgs-5
