@@ -1,0 +1,190 @@
+--- a/include/gz/transport/ReqHandler.hh
++++ b/include/gz/transport/ReqHandler.hh
+@@ -284,13 +284,13 @@ namespace ignition
+       // Documentation inherited.
+       public: virtual std::string ReqTypeName() const
+       {
+-        return Req().GetTypeName();
++        return std::string(Req().GetTypeName());
+       }
+ 
+       // Documentation inherited.
+       public: virtual std::string RepTypeName() const
+       {
+-        return Rep().GetTypeName();
++        return std::string(Rep().GetTypeName());
+       }
+ 
+       /// \brief Protobuf message containing the request's parameters.
+@@ -381,7 +381,7 @@ namespace ignition
+       public: virtual std::string ReqTypeName() const
+       {
+         if (this->reqMsg)
+-          return this->reqMsg->GetTypeName();
++          return std::string(this->reqMsg->GetTypeName());
+         else
+         {
+           std::cerr << "ReqHandler::ReqTypeName() Warning: Using ReqTypeName() "
+@@ -394,7 +394,7 @@ namespace ignition
+       public: virtual std::string RepTypeName() const
+       {
+         if (this->repMsg)
+-          return this->repMsg->GetTypeName();
++          return std::string(this->repMsg->GetTypeName());
+         else
+         {
+           std::cerr << "ReqHandler::RepTypeName() Warning: Using RepTypeName() "
+diff --git a/include/gz/transport/SubscriptionHandler.hh b/include/gz/transport/SubscriptionHandler.hh
+index d69c83dd..0a62b784 100644
+--- a/include/gz/transport/SubscriptionHandler.hh
++++ b/include/gz/transport/SubscriptionHandler.hh
+@@ -185,7 +185,7 @@ namespace ignition
+       // Documentation inherited.
+       public: std::string TypeName()
+       {
+-        return T().GetTypeName();
++        return std::string(T().GetTypeName());
+       }
+ 
+       /// \brief Set the callback for this handler.
+@@ -211,13 +211,14 @@ namespace ignition
+         if (!this->UpdateThrottling())
+           return true;
+ 
+-#if GOOGLE_PROTOBUF_VERSION >= 4022000
+-        auto msgPtr = google::protobuf::internal::DownCast<const T*>(&_msg);
+-#elif GOOGLE_PROTOBUF_VERSION >= 3000000
+-        auto msgPtr = google::protobuf::down_cast<const T*>(&_msg);
+-#else
+-        auto msgPtr = google::protobuf::internal::down_cast<const T*>(&_msg);
+-#endif
++        // Use dynamic_cast for safe type conversion
++        auto msgPtr = dynamic_cast<const T*>(&_msg);
++        if (!msgPtr)
++        {
++          std::cerr << "SubscriptionHandler::RunLocalCallback() error: "
++                    << "Failed to cast message to expected type" << std::endl;
++          return false;
++        }
+ 
+         this->cb(*msgPtr, _info);
+         return true;
+diff --git a/include/gz/transport/detail/Node.hh b/include/gz/transport/detail/Node.hh
+index fdefdf8d..14f7f665 100644
+--- a/include/gz/transport/detail/Node.hh
++++ b/include/gz/transport/detail/Node.hh
+@@ -31,7 +31,7 @@ namespace ignition
+         const std::string &_topic,
+         const AdvertiseMessageOptions &_options)
+     {
+-      return this->Advertise(_topic, MessageT().GetTypeName(), _options);
++      return this->Advertise(_topic, std::string(MessageT().GetTypeName()), _options);
+     }
+ 
+     //////////////////////////////////////////////////
+@@ -264,7 +264,7 @@ namespace ignition
+         this->Shared()->myReplierAddress,
+         this->Shared()->replierId.ToString(),
+         this->Shared()->pUuid, this->NodeUuid(),
+-        RequestT().GetTypeName(), ReplyT().GetTypeName(), _options);
++        std::string(RequestT().GetTypeName()), std::string(ReplyT().GetTypeName()), _options);
+ 
+       if (!this->Shared()->AdvertisePublisher(publisher))
+       {
+@@ -417,8 +417,8 @@ namespace ignition
+         std::lock_guard<std::recursive_mutex> lk(this->Shared()->mutex);
+         localResponserFound = this->Shared()->repliers.FirstHandler(
+               fullyQualifiedTopic,
+-              RequestT().GetTypeName(),
+-              ReplyT().GetTypeName(),
++              std::string(RequestT().GetTypeName()),
++              std::string(ReplyT().GetTypeName()),
+               repHandler);
+       }
+ 
+@@ -455,7 +455,7 @@ namespace ignition
+         if (this->Shared()->TopicPublishers(fullyQualifiedTopic, addresses))
+         {
+           this->Shared()->SendPendingRemoteReqs(fullyQualifiedTopic,
+-            RequestT().GetTypeName(), ReplyT().GetTypeName());
++            std::string(RequestT().GetTypeName()), std::string(ReplyT().GetTypeName()));
+         }
+         else
+         {
+@@ -548,7 +548,7 @@ namespace ignition
+       // If the responser is within my process.
+       IRepHandlerPtr repHandler;
+       if (this->Shared()->repliers.FirstHandler(fullyQualifiedTopic,
+-        _request.GetTypeName(), _reply.GetTypeName(), repHandler))
++        std::string(_request.GetTypeName()), std::string(_reply.GetTypeName()), repHandler))
+       {
+         // There is a responser in my process, let's use it.
+         _result = repHandler->RunLocalCallback(_request, _reply);
+@@ -564,7 +564,7 @@ namespace ignition
+       if (this->Shared()->TopicPublishers(fullyQualifiedTopic, addresses))
+       {
+         this->Shared()->SendPendingRemoteReqs(fullyQualifiedTopic,
+-          _request.GetTypeName(), _reply.GetTypeName());
++          std::string(_request.GetTypeName()), std::string(_reply.GetTypeName()));
+       }
+       else
+       {
+diff --git a/src/Node.cc b/src/Node.cc
+index a49c4596..fe5b1205 100644
+--- a/src/Node.cc
++++ b/src/Node.cc
+@@ -280,12 +280,12 @@ bool Node::Publisher::Publish(const ProtoMsg &_msg)
+   const std::string &publisherMsgType = this->dataPtr->publisher.MsgTypeName();
+ 
+   // Check that the msg type matches the topic type previously advertised.
+-  if (publisherMsgType != _msg.GetTypeName())
++  if (publisherMsgType != std::string(_msg.GetTypeName()))
+   {
+     std::cerr << "Node::Publisher::Publish() Type mismatch.\n"
+               << "\t* Type advertised: "
+               << this->dataPtr->publisher.MsgTypeName()
+-              << "\n\t* Type published: " << _msg.GetTypeName() << std::endl;
++              << "\n\t* Type published: " << std::string(_msg.GetTypeName()) << std::endl;
+     return false;
+   }
+ 
+@@ -358,7 +358,7 @@ bool Node::Publisher::Publish(const ProtoMsg &_msg)
+           }
+ 
+           if (handler.second->TypeName() != kGenericMessageType &&
+-              handler.second->TypeName() != _msg.GetTypeName())
++              handler.second->TypeName() != std::string(_msg.GetTypeName()))
+           {
+             continue;
+           }
+@@ -384,7 +384,7 @@ bool Node::Publisher::Publish(const ProtoMsg &_msg)
+           }
+ 
+           if (rawHandler->TypeName() != kGenericMessageType &&
+-              rawHandler->TypeName() != _msg.GetTypeName())
++              rawHandler->TypeName() != std::string(_msg.GetTypeName()))
+           {
+             continue;
+           }
+@@ -423,7 +423,7 @@ bool Node::Publisher::Publish(const ProtoMsg &_msg)
+     };
+ 
+     if (!this->dataPtr->shared->Publish(this->dataPtr->publisher.Topic(),
+-          msgBuffer, msgSize, myDeallocator, _msg.GetTypeName()))
++          msgBuffer, msgSize, myDeallocator, std::string(_msg.GetTypeName())))
+     {
+       return false;
+     }
+diff --git a/src/gz.cc b/src/gz.cc
+index ae940787..d3344cac 100644
+--- a/src/gz.cc
++++ b/src/gz.cc
+@@ -163,7 +163,7 @@ extern "C" void IGNITION_TRANSPORT_VISIBLE cmdTopicPub(const char *_topic,
+   {
+     // Create the node and advertise the topic
+     Node node;
+-    auto pub = node.Advertise(_topic, msg->GetTypeName());
++    auto pub = node.Advertise(_topic, std::string(msg->GetTypeName()));
+ 
+     // Publish the message
+     if (pub)

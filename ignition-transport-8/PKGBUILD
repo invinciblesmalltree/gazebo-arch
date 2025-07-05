@@ -14,15 +14,18 @@ depends=('protobuf' 'protobuf-c' 'zeromq' 'ignition-msgs=5' 'ignition-tools=1'
 makedepends=('ignition-cmake=2' 'util-linux')
 provides=('ignition-transport=8')
 source=("https://github.com/gazebosim/gz-transport/archive/ignition-transport8_${pkgver}.tar.gz"
-        protobuf-stubs-casts.patch)
+        protobuf-stubs-casts.patch
+        protobuf-compatibility.patch)
 sha256sums=('65472a874bbb0f6bb686b3c0cce4146fb650e750f8f795a159523ecbe731c1c7'
-            'c6490e7d8099dd11a00338f7440d7355ab28ca7f43cdbe3dea1db12bbd583d76')
+            'c6490e7d8099dd11a00338f7440d7355ab28ca7f43cdbe3dea1db12bbd583d76'
+            '3b4121b8cdd97adad64ea5fc3a2a8a0b20f77ff1bdac7e0c6a2a9958cf178308')
 
 _dir="gz-transport-ignition-transport8_${pkgver}"
 
 prepare() {
     cd ${srcdir}/${_dir}
     patch -Np1 -i ${srcdir}/protobuf-stubs-casts.patch
+    patch -Np1 -i ${srcdir}/protobuf-compatibility.patch
 }
 
 build() {
